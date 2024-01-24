@@ -1,4 +1,4 @@
-package com.amd.simplehttpserver;
+package com.amd.simplehttpserver.server;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -6,15 +6,15 @@ import java.net.ServerSocket;
 public class HttpServer {
     //decode params, path variables, body, headers
 
-    private RunnableServer runnableServer;
+    private SocketHandler socketHandler;
 
-    private String DEFAULT_HOSTNAME = "";
+    private String DEFAULT_HOSTNAME = "127.0.0.1";
 
     private int DEFAULT_PORT = 8080;
 
     private int DEFAULT_NUM_THREADS = 20;
 
-    private int DEFAULT_TIMEOUT = 10000;
+    private int DEFAULT_TIMEOUT = 5000;
 
     public void main(String... args) {
         try {
@@ -25,12 +25,12 @@ public class HttpServer {
     }
 
     public ServerSocket getServerSocket() throws IOException {
-        SocketFactory socketFactory = new SocketFactory();
+        HttpSocketFactory socketFactory = new HttpSocketFactory();
         return socketFactory.createHttpSocket();
     }
 
     public ServerConfig getServerConfig() {
-        return new ServerConfig(DEFAULT_HOSTNAME, DEFAULT_PORT, DEFAULT_NUM_THREADS);
+        return new ServerConfig(DEFAULT_HOSTNAME, DEFAULT_PORT, DEFAULT_NUM_THREADS, DEFAULT_TIMEOUT);
     }
 
     public void start() throws IOException {
@@ -38,15 +38,14 @@ public class HttpServer {
         ServerSocket serverSocket = getServerSocket();
         ServerConfig serverConfig = getServerConfig();
 
-        runnableServer  = new RunnableServer(serverSocket, serverConfig);
+        socketHandler = new SocketHandler(serverSocket, serverConfig);
 
-        //need to assign to thread Daemon.
-        Thread thread = new Thread(runnableServer);
+        Thread thread = new Thread(socketHandler);
         thread.setDaemon(true);
 
         thread.start();
 
-        while(runnableServer.getBindException() == null && !runnableServer.isBound()) {
+        while (socketHandler.getBindException() == null && !socketHandler.isBound()) {
             try {
                 Thread.sleep(10L);
             } catch (InterruptedException e) {
@@ -54,14 +53,14 @@ public class HttpServer {
             }
         }
 
-        if(runnableServer.getBindException() != null) {
-            throw runnableServer.getBindException();
+        if (socketHandler.getBindException() != null) {
+            throw socketHandler.getBindException();
         }
 
     }
 
     public void stop() {
-        this.runnableServer.setStopped(true);
+        this.socketHandler.setStopped(true);
     }
 
 }
