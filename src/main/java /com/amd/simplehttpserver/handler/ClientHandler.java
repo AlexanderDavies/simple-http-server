@@ -22,20 +22,8 @@ public class ClientHandler implements Runnable {
         return new ClientHandler(inputStream, outputStream, clientSocket);
     }
 
-
-    private void closeConnection() {
-        try {
-            this.inputStream.close();
-            this.outputStream.close();
-            this.clientSocket.close();
-
-        } catch (IOException ex) {
-            //TO DO ... unable to close socket
-            System.out.println("Error closing client socket");
-        }
-    }
-
     private HttpResponse routeRequest() throws ResponseException {
+
         // TO DO, DUMMY For TESTING
 
         HttpResponse response = new HttpResponse<>(this.outputStream);
@@ -49,11 +37,12 @@ public class ClientHandler implements Runnable {
     @Override
     public void run() {
 
-        try {
+        try (clientSocket; inputStream; outputStream)
+        {
             while (!clientSocket.isClosed()) {
 
                 // Build request
-                HttpRequest request = new HttpRequest(this.inputStream);
+                HttpRequest request = new HttpRequestImpl(this.inputStream);
 
                 //TO DO: Route the request to the correct handler
                 HttpResponse response = routeRequest();
@@ -69,10 +58,8 @@ public class ClientHandler implements Runnable {
         } catch (SocketException ex) {
             //Do Nothing: Client connection has been terminated and this is to be expected
         } catch (IOException ex) {
-            // TO DO: handle stream exceptions
-            System.out.println(ex.getMessage());
-        } finally {
-            closeConnection();
-        }
+        // TO DO: handle stream exceptions
+        System.out.println(ex.getMessage());
+    }
     }
 }

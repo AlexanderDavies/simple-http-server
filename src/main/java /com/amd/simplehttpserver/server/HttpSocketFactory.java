@@ -5,7 +5,12 @@ import java.net.ServerSocket;
 
 public class HttpSocketFactory {
 
-    public ServerSocket createHttpSocket () throws IOException {
+    public static ServerSocket createHttpSocket () throws IOException {
+        return new ServerSocket();
+    }
+
+    public static ServerSocket createHttpsSocket () throws IOException {
+        // TO DO
         return new ServerSocket();
     }
 

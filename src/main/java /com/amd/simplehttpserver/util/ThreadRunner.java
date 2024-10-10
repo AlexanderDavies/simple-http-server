@@ -1,4 +1,4 @@
-package com.amd.simplehttpserver.server;
+package com.amd.simplehttpserver.util;
 
 import com.amd.simplehttpserver.handler.ClientHandler;
 
@@ -15,7 +15,6 @@ public class ThreadRunner {
 
     public void execute(ClientHandler clientHandler) {
         executor.execute(clientHandler);
-
     }
 
 }

@@ -4,29 +4,26 @@ import java.io.IOException;
 import java.net.ServerSocket;
 
 public class HttpServer {
-    //decode params, path variables, body, headers
 
     private SocketHandler socketHandler;
 
-    private String DEFAULT_HOSTNAME = "127.0.0.1";
+    private final String DEFAULT_HOSTNAME = "127.0.0.1";
 
-    private int DEFAULT_PORT = 8080;
+    private final int DEFAULT_PORT = 8080;
 
-    private int DEFAULT_NUM_THREADS = 20;
+    private final int DEFAULT_NUM_THREADS = 20;
 
-    private int DEFAULT_TIMEOUT = 5000;
+    private final int DEFAULT_TIMEOUT = 5000;
 
-    public void main(String... args) {
-        try {
-            start();
-        } catch (IOException ex) {
-            System.out.println(ex);
-        }
-    }
+    private boolean SSL_ENABLED = false;
 
     public ServerSocket getServerSocket() throws IOException {
-        HttpSocketFactory socketFactory = new HttpSocketFactory();
-        return socketFactory.createHttpSocket();
+
+        if (SSL_ENABLED) {
+            return HttpSocketFactory.createHttpsSocket();
+        }
+
+        return HttpSocketFactory.createHttpSocket();
     }
 
     public ServerConfig getServerConfig() {
@@ -60,7 +57,7 @@ public class HttpServer {
     }
 
     public void stop() {
-        this.socketHandler.setStopped(true);
+        this.socketHandler.setIsStopped();
     }
 
 }
