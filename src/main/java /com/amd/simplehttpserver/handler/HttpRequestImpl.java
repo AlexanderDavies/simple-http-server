@@ -5,7 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
-public class HttpRequestImpl implements HttpRequest {
+public class HttpRequestImpl<T> implements HttpRequest<T> {
 
     private final static int MAX_HEADER_BUFFER_SIZE = 8192;
     private final InputStream inputStream;
@@ -13,13 +13,15 @@ public class HttpRequestImpl implements HttpRequest {
     private String protocol;
     private String path;
     private String[] pathParams;
-    private Map<String, String> queryParams;
+    private final Map<String, String> queryParams;
     private final Map<String, String> headers;
-    private Object body;
+    private T body;
 
     public HttpRequestImpl(InputStream inputStream) {
         this.inputStream = inputStream;
         this.headers = new HashMap<>();
+        this.queryParams = new HashMap<>();
+        this.pathParams = new String[0];
     }
 
     @Override
@@ -54,7 +56,7 @@ public class HttpRequestImpl implements HttpRequest {
     }
 
     @Override
-    public Object getBody() {
+    public T getBody() {
         return body;
     }
 
@@ -73,7 +75,6 @@ public class HttpRequestImpl implements HttpRequest {
         this.inputStream.mark(MAX_HEADER_BUFFER_SIZE);
 
         // Read InputStream once to ensure client connection has not closed
-
         byteRead = this.inputStream.read(headerBuffer, 0, MAX_HEADER_BUFFER_SIZE);
 
         numBytesRead++;
@@ -91,8 +92,11 @@ public class HttpRequestImpl implements HttpRequest {
             byteRead = this.inputStream.read(headerBuffer, numBytesRead, MAX_HEADER_BUFFER_SIZE);
         }
 
-        // Parse headers
-        parseHeaders(headerBuffer, headerEnd);
+        BufferedReader reader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(headerBuffer, 0, headerEnd), StandardCharsets.UTF_8));
+
+        parseRequestLine(reader);
+
+        parseHeaders(reader);
 
         // Handle body for post, put, patch requests
         if (getMethod().equals(HttpMethods.POST.toString())
@@ -118,36 +122,52 @@ public class HttpRequestImpl implements HttpRequest {
         return -1;
     }
 
-    private void parseHeaders(byte[] headerBuffer, int headerEnd) throws ResponseException {
+    private void parsePath(String firstLine) {
+        String[] tokens = firstLine.split(" ");
 
-        try {
-            BufferedReader reader = new BufferedReader(new InputStreamReader(new ByteArrayInputStream(headerBuffer, 0, headerEnd), StandardCharsets.UTF_8));
+        method = tokens[0];
 
-            String firstLine = reader.readLine();
-
-            String[] tokens = firstLine.split(" ");
-
-            method = tokens[0];
-
-            //Check if there is a path
-            if (tokens.length == 3) {
-                path = tokens[1];
-                protocol = tokens[2];
-            } else {
-                protocol = tokens[1];
-            }
-
-            String headerLine;
-            while ((headerLine = reader.readLine()) != null) {
-                String[] headerLineTokens = headerLine.split(":");
-                String key = headerLineTokens[0].trim();
-                String value = headerLineTokens[1].trim();
-                headers.put(key, value);
-            }
-
-        } catch (Exception ex) {
-            throw new ResponseException("Unable to decode HTTP headers", HttpStatus.BAD_REQUEST);
+        //Check if there is a path
+        if (tokens.length == 3) {
+            path = tokens[1];
+            protocol = tokens[2];
+        } else {
+            protocol = tokens[1];
         }
+    }
+
+    private void parseQueryParams() {
+        if (path != null) {
+            String queryString = path.substring(path.indexOf("?") + 1);
+
+            String[] queryArray = queryString.split("&");
+
+            for (String query : queryArray) {
+                String[] keyValue = query.split("=");
+                if (keyValue.length == 2) {
+                    queryParams.put(keyValue[0], keyValue[1]);
+                }
+            }
+        }
+    }
+
+    private void parseHeaders(BufferedReader reader) throws IOException {
+        String headerLine;
+        while ((headerLine = reader.readLine()) != null) {
+            String[] headerLineTokens = headerLine.split(":");
+            String key = headerLineTokens[0].trim();
+            String value = headerLineTokens[1].trim();
+            headers.put(key, value);
+        }
+    }
+
+    private void parseRequestLine(BufferedReader reader) throws IOException {
+
+            parsePath(reader.readLine());
+
+            parseQueryParams();
+
+            //TO DO: parse path params;
 
     }
 

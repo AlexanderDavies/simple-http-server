@@ -42,7 +42,7 @@ public class ClientHandler implements Runnable {
             while (!clientSocket.isClosed()) {
 
                 // Build request
-                HttpRequest request = new HttpRequestImpl(this.inputStream);
+                HttpRequest<Object> request = new HttpRequestImpl<>(this.inputStream);
 
                 //TO DO: Route the request to the correct handler
                 HttpResponse response = routeRequest();
